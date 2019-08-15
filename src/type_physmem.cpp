@@ -94,7 +94,7 @@ PyObject *PhysMem_addSpecial(PhysMemObj *self, PyObject *args) {
 			if (!result) return false;
 			
 			char *buffer;
-			int buflen;
+			Py_ssize_t buflen;
 			if (PyBytes_AsStringAndSize(result, &buffer, &buflen) == -1) {
 				Py_DECREF(result);
 				return false;
