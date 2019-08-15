@@ -123,7 +123,7 @@ bool PPCInstr_addic_rc(PPCInstruction *instr, PPCInterpreter *cpu) {
 bool PPCInstr_subfic(PPCInstruction *instr, PPCInterpreter *cpu) {
 	uint32_t left = cpu->core->regs[instr->rA()];
 	uint32_t right = instr->simm();
-	uint64_t result = (uint64_t)~left + right + 1;
+	uint64_t result = (uint64_t)(uint32_t)~left + right + 1;
 	cpu->core->xer.set(PPCCore::CA, result >> 32);
 	cpu->core->regs[instr->rD()] = (uint32_t)result;
 	return true;
@@ -188,7 +188,7 @@ bool PPCInstr_subf(PPCInstruction *instr, PPCInterpreter *cpu) {
 bool PPCInstr_subfc(PPCInstruction *instr, PPCInterpreter *cpu) {
 	uint32_t left = cpu->core->regs[instr->rA()];
 	uint32_t right = cpu->core->regs[instr->rB()];
-	uint64_t result = (uint64_t)~left + right + 1;
+	uint64_t result = (uint64_t)(uint32_t)~left + right + 1;
 	cpu->core->xer.set(PPCCore::CA, result >> 32);
 	if (instr->rc()) PPC_UpdateConditions(cpu->core, (uint32_t)result);
 	cpu->core->regs[instr->rD()] = (uint32_t)result;
@@ -196,7 +196,7 @@ bool PPCInstr_subfc(PPCInstruction *instr, PPCInterpreter *cpu) {
 }
 
 bool PPCInstr_subfe(PPCInstruction *instr, PPCInterpreter *cpu) {
-	uint64_t result = (uint64_t)~cpu->core->regs[instr->rA()] + cpu->core->regs[instr->rB()] + cpu->core->xer.get(PPCCore::CA);
+	uint64_t result = (uint64_t)(uint32_t)~cpu->core->regs[instr->rA()] + cpu->core->regs[instr->rB()] + cpu->core->xer.get(PPCCore::CA);
 	cpu->core->xer.set(PPCCore::CA, result >> 32);
 	if (instr->rc()) PPC_UpdateConditions(cpu->core, (uint32_t)result);
 	cpu->core->regs[instr->rD()] = (uint32_t)result;
@@ -204,7 +204,7 @@ bool PPCInstr_subfe(PPCInstruction *instr, PPCInterpreter *cpu) {
 }
 
 bool PPCInstr_subfze(PPCInstruction *instr, PPCInterpreter *cpu) {
-	uint64_t result = (uint64_t)~cpu->core->regs[instr->rA()] + cpu->core->xer.get(PPCCore::CA);
+	uint64_t result = (uint64_t)(uint32_t)~cpu->core->regs[instr->rA()] + cpu->core->xer.get(PPCCore::CA);
 	cpu->core->xer.set(PPCCore::CA, result >> 32);
 	if (instr->rc()) PPC_UpdateConditions(cpu->core, (uint32_t)result);
 	cpu->core->regs[instr->rD()] = (uint32_t)result;
