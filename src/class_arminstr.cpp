@@ -487,6 +487,17 @@ bool ARMInstr_CoprocessorRegisterTransfer(ARMInstruction *instr, ARMInterpreter 
 	}
 }
 
+bool ARMInstr_CountLeadingZeros(ARMInstruction *instr, ARMInterpreter *cpu) {
+	uint32_t value = cpu->core->regs[instr->r3()], count;
+	for (count = 0; count < 32; count++)
+		if (value & (1 << (31 - count)))
+			break;
+
+	cpu->core->regs[instr->r1()] = count;
+
+	return true;
+}
+
 bool ARMInstr_Undefined(ARMInstruction *instr, ARMInterpreter *cpu) {
 	return cpu->handleUndefined();
 }
@@ -513,8 +524,7 @@ bool ARMInstruction::execute(ARMInterpreter *cpu) {
 			if (!(value & 0xF0)) return ARMInstr_PSRTransfer(this, cpu);
 			if ((value & 0xF0) == 0x10) {
 				if (value & 0x400000) {
-					NotImplementedError("Count leading zeros");
-					return false;
+					return ARMInstr_CountLeadingZeros(this, cpu);
 				}
 				return ARMInstr_BranchAndExchange(this, cpu);
 			}
