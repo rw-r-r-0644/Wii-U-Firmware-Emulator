@@ -205,17 +205,17 @@ bool ARMInstr_MultiplyAccumulate(ARMInstruction *instr, ARMInterpreter *cpu) {
 }
 
 bool ARMInstr_MultiplyAccumulateLong(ARMInstruction *instr, ARMInterpreter *cpu) {
+	uint64_t result = 0;
+
 	if (instr->a()) {
-		NotImplementedError("ARM multiply long with accumulate 0x%08x", cpu->core->regs[15]);
-		return false;
+		result = ((uint64_t)cpu->core->regs[instr->r0()] << 32) | cpu->core->regs[instr->r1()];
 	}
 	
-	uint64_t result;
 	if ((instr->value >> 22) & 1) {
-		result = (int64_t)(int32_t)cpu->core->regs[instr->r2()] * (int32_t)cpu->core->regs[instr->r3()];
+		result = (int64_t)(int32_t)cpu->core->regs[instr->r2()] * (int32_t)cpu->core->regs[instr->r3()] + (int64_t)result;
 	}
 	else {
-		result = (uint64_t)cpu->core->regs[instr->r2()] * cpu->core->regs[instr->r3()];
+		result = (uint64_t)cpu->core->regs[instr->r2()] * cpu->core->regs[instr->r3()] + (uint64_t)result;
 	}
 	
 	if (instr->s()) {
