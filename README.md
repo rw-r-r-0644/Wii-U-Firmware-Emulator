@@ -1,22 +1,37 @@
 # Wii U Firmware Emulator
 ## What does this do?
-This takes a fw.img and a NAND dump and tries to emulate the Wii U processors and hardware. It's currently able to emulate all the way through IOSU and the PowerPC kernel until it gets stuck when nn_acp.rpl tries to open /dev/ndm.
+This emulator tries to emulate the Wii U processors and hardware. It's currently able to emulate all the way through boot1, IOSU and the PowerPC kernel until it gets stuck when nn_acp.rpl tries to open /dev/ndm.
 
 This emulator consists of both Python and C++ code. The C++ code (which is compiled into a python module) contains the ARM and PowerPC interpreters and a few other classes, like a SHA1 calculator. The Python code is responsible for the things that don't require high performance. It emulates the hardware devices and provides a debugger for example.
 
 ## How to use
-Requirements:
-* A fw.img file, this contains the first code that's run by the emulator
-* A NAND dump (otp, seeprom, slc and mlc)
+### Requirements:
+* A dump of boot1 (boot1.bin, obtainable through "hexFW")
+* A dump of otp (otp.bin) and seeprom (seeprom.bin)
+* A dump of mlc (mlc_work.bin, unneeded for boot1-only debugging)
+* A full dump of slc and slccmpt with spare data (obtainable through "WiiU Nand Dumper")
 * Python 3 (tested with 3.6.4)
 * PyCrypto / PyCryptodome (for AES hardware)
 
-Before running this, you need to update the path to fw.img in main.py and the paths to your NAND dump files in hardware.py. This emulator writes to these files if they're accessed by IOSU, so it may be a good idea to use a backup. Also create a file named espresso_key.txt and put the espresso ancast key into it as ascii hex digits.
+### Instructions:
+* Install the pyemu library:
+    ```
+    python setup.py install
+    ```
+* Prepare the slc by splitting the raw and ecc data. You can use utils/split_nand.py to do this:
+    ```
+    python utils/split_nand.py slc.bin slc_work.bin slcspare_work.bin
+    python utils/split_nand.py slccmpt.bin slccmpt_work.bin slccmptspare_work.bin
+    ```
+* Create a file named espresso_key.txt in emulator's root folder and put the espresso ancast key into it as ascii hex digits
+* Place otp.bin, seeprom.bin, slc_work.bin, slccmpt_work.bin, slcspare_work.bin, slccmptspare_work.bin in emulator's root folder
+* Place mlc_work.bin in emulator's root folder. If only need to emulate boot1, you can provide a dummy empty file
+* Done!
 
 Pass "noprint" as a command line argument to disable print messages on unimplemented hardware reads/writes. Pass "logall" to enable hack that sets the COS log level to the highest possible value. Pass "logsys" to enable IOSU syscall logging. This generates ipc.txt (ipc requests like ioctls), messages.txt (message queue operations) and files.txt (files openend by IOSU). It slows down the code a lot however.
 
 ## Debugger
-Using this emulator you can actually see what IOSU and the PowerPC kernel/loader look like at runtime (at least, the parts that this emulator is able to emulate accurately), and even perform some debugging operations on them. To enable the debugger, pass "break" as command line argument. You can stop execution and show the debugger by pressing Ctrl+C at any point, but sometimes this causes an instruction to be executed only partially, which might put the emulator into a broken state. Here's a list of commands:
+Using this emulator you can actually see what boot1, IOSU and the PowerPC kernel/loader look like at runtime (at least, the parts that this emulator is able to emulate accurately), and even perform some debugging operations on them. To enable the debugger, pass "break" as command line argument. You can stop execution and show the debugger by pressing Ctrl+C at any point, but sometimes this causes an instruction to be executed only partially, which might put the emulator into a broken state. Here's a list of commands:
 
 ### General
 | Command | Description |
