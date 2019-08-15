@@ -25,8 +25,6 @@ module = Extension(
 	name = "pyemu",
 	sources = sources,
 	define_macros = macros,
-	extra_compile_args = ["/WX"],
-	extra_link_args = ["/DEBUG"]
 )
 
 setup(
@@ -37,5 +35,3 @@ setup(
 	
 	ext_modules = [module],
 )
-
-shutil.copy("build/lib.win32-3.6/pyemu.cp36-win32.pyd", ".")
