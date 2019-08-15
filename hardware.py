@@ -985,11 +985,20 @@ class NANDBank:
 
 		self.file = self.slccmpt
 		self.filespare = self.slccmptspare
-		self.reset()
-		
-	def reset(self):
+		self.chip_reset()
+
+	def chip_reset(self):
 		self.control = 0
 		self.config = 0
+		self.addr1 = 0
+		self.addr2 = 0
+		self.databuf = 0
+		self.eccbuf = 0
+		self.ipagenum = 0
+		self.ipageoff = 0
+
+	def cmd_reset(self):
+		self.control = 0
 		self.addr1 = 0
 		self.addr2 = 0
 		self.databuf = 0
@@ -1020,19 +1029,36 @@ class NANDBank:
 		elif addr == NAND_DATABUF: self.databuf = value
 		elif addr == NAND_ECCBUF: self.eccbuf = value
 		
+	def parse_addr(self, addrmask):
+		if (addrmask & 0b00001):
+			self.ipageoff = (self.ipageoff & 0x700) | (self.addr1 & 0x0FF)
+		if (addrmask & 0b00010):
+			self.ipageoff = (self.ipageoff & 0x0FF) | (self.addr1 & 0x700)
+		if (addrmask & 0b00100):
+			self.ipagenum = (self.ipagenum & 0xFFFF00) | (self.addr2 & 0x0000FF)
+		if (addrmask & 0b01000):
+			self.ipagenum = (self.ipagenum & 0xFF00FF) | (self.addr2 & 0x00FF00)
+		if (addrmask & 0b10000):
+			self.ipagenum = (self.ipagenum & 0x00FFFF) | (self.addr2 & 0xFF0000)
+
 	def start_command(self, value):
 		if value & 0x80000000:
+			addrmask = (value >> 24) & 0x1F
 			command = (value >> 16) & 0xFF
 			write = (value >> 14) & 1
 			read = (value >> 13) & 1
 			length = value & 0xFFF
+
+			if (addrmask != 0):
+				self.parse_addr(addrmask)
+
 			self.handle_command(command, write, read, length)
 
 			if value & 0x40000000:
 				self.armirq.trigger_irq_all(1)
 			return value & ~0x80000000
 		else:
-			self.reset()
+			self.cmd_reset()
 			return 0
 
 	def handle_command(self, command, write, read, length):
@@ -1041,19 +1067,19 @@ class NANDBank:
 			
 		elif command == 0x10: #Finish write
 			assert not read and not write and not length
-			
+
 		elif command == 0x30: #Read
 			assert read and not write and (length == 0x840 or length == 0x40)
 			if length == 0x840:
-				self.file.seek((self.addr2 << 11) | self.addr1)
+				self.file.seek((self.ipagenum << 11) | self.ipageoff)
 				self.physmem.write(self.databuf, self.file.read(0x800))
 
-				self.filespare.seek(self.addr2 << 6)
+				self.filespare.seek(self.ipagenum << 6)
 				sparedata = self.filespare.read(0x40)
 				self.physmem.write(self.eccbuf, sparedata)
 				self.physmem.write(self.eccbuf ^ 0x40, sparedata[0x30:])
 			else:
-				self.filespare.seek(self.addr2 << 6)
+				self.filespare.seek(self.ipagenum << 6)
 				self.physmem.write(self.databuf, self.filespare.read(0x40))
 				
 		elif command == 0x60: #Erase init 1
@@ -1066,14 +1092,13 @@ class NANDBank:
 		elif command == 0x80: #Write
 			assert not read and write and length == 0x800
 			data = self.physmem.read(self.databuf, length)
-			self.file.seek((self.addr2 << 11) | self.addr1)
+			self.file.seek((self.ipagenum << 11) | self.ipageoff)
 			self.file.write(data)
-			self.next_spare = self.addr2 << 6
 			
 		elif command == 0x85: #Write spare
 			assert not read and write and length == 0x40
 			data = self.physmem.read(self.databuf, length)
-			self.filespare.seek(self.next_spare)
+			self.filespare.seek(self.ipagenum << 6)
 			self.filespare.write(data)
 
 		elif command == 0x90: #Get chip id
@@ -1085,6 +1110,7 @@ class NANDBank:
 			
 		elif command == 0xFF: #Reset
 			assert not read and not write and not length
+			self.chip_reset()
 			
 		else:
 			print("NAND COMMAND 0x%X %i %i 0x%X at %08X" %(command, write, read, length, self.scheduler.pc()))
@@ -1129,9 +1155,9 @@ class NANDController:
 		self.slccmptspare.close()
 	
 	def reset(self):
-		self.main_bank.reset()
+		self.main_bank.chip_reset()
 		for bank in self.banks:
-			bank.reset()
+			bank.chip_reset()
 
 		self.bank = 0
 		self.bank_control = 0
