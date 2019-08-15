@@ -748,9 +748,7 @@ class SDIOController:
 	def __init__(self, scheduler, armirq, physmem, index, type):
 		self.file = None
 		if index == 1:
-			self.file = open("D:/WiiU/MLC/mlc_work.bin", "r+b")
-			#self.file = open("D:/WiiU/MLC/mlc.bin", "rb")
-			#self.file.write = lambda *args: None
+			self.file = open("mlc_work.bin", "r+b")
 	
 		self.scheduler = scheduler
 		self.armirq = armirq

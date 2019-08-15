@@ -37,25 +37,27 @@ class Scheduler:
 				
 				
 class Emulator:
-	def __init__(self, filename):
+	def __init__(self):
 		self.scheduler = Scheduler()
 		self.shell = debug.DebugShell(self.scheduler)
 
 		self.init_physmem()
 		self.init_hardware()
 		self.init_cpu()
-		self.init_elffile(filename)
+		self.load_boot1()
 
 		self.armemu.breakpoints.add(0x5015E70, lambda addr: self.armemu.core.setreg(0, 0))
 		self.armemu.breakpoints.add(0x503409C, lambda addr: self.reset_ppc())
 		
 	def init_physmem(self):
 		self.physmem = pyemu.PhysicalMemory()
-		self.physmem.add_range(0x10000000, 0x28000000) #IOSU processes and ram disk
-		self.physmem.add_range(0x08000000, 0x082E0000) #MEM0
-		self.physmem.add_range(0xFFF00000, 0xFFFFF000) #Kernel stuff
-		self.physmem.add_range(0x28000000, 0x34000000) #MEM2
 		self.physmem.add_range(0x00000000, 0x02000000) #MEM1
+		self.physmem.add_range(0x08000000, 0x082E0000) #MEM0
+		self.physmem.add_range(0x0D400000, 0x0D410000) #boot1
+		self.physmem.add_range(0x0D410000, 0x0D420000) #boot0
+		self.physmem.add_range(0x10000000, 0x28000000) #IOSU processes and ram disk
+		self.physmem.add_range(0x28000000, 0x34000000) #MEM2
+		self.physmem.add_range(0xFFF00000, 0xFFFFF000) #Kernel stuff
 
 	def init_hardware(self):
 		self.hw = hardware.HardwareController(self.scheduler, self.physmem)
@@ -76,18 +78,6 @@ class Emulator:
 		self.scheduler.add(self.ppcemu[2], 500)
 		self.scheduler.resume(self.armemu)
 		
-	def init_elffile(self, filename):
-		with open(filename, "rb") as f:
-			data = f.read()
-		elf = pyemu.ELFFile(data)
-		
-		for program in elf.programs:
-			if program.type == pyemu.ELFProgram.PT_LOAD:
-				if program.filesize:
-					self.physmem.write(program.physaddr, data[program.fileoffs : program.fileoffs + program.filesize])
-
-		self.armemu.core.setreg(pyemu.ARMCore.PC, elf.entry_point)
-			
 	def reset_ppc(self):
 		size = struct.unpack(">I", self.physmem.read(0x080000AC, 4))[0]
 		data = self.physmem.read(0x08000100, size)
@@ -100,6 +90,12 @@ class Emulator:
 		for emu in self.ppcemu:
 			emu.core.setpc(0xFFF00100)
 			self.scheduler.resume(emu)
+
+	def load_boot1(self):
+		with open("boot1.bin", "rb") as f:
+			data = f.read()
+		self.physmem.write(0x0D400200, data)
+		self.armemu.core.setreg(pyemu.ARMCore.PC, 0x0D400200)
 
 	def print_traceback(self):
 		import traceback
@@ -126,5 +122,5 @@ class Emulator:
 
 		
 if __name__ == "__main__":
-	emulator = Emulator("C:/Users/Yannik/Downloads/openssl/fwdec.elf")
+	emulator = Emulator()
 	emulator.run()
