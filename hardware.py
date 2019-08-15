@@ -1212,14 +1212,13 @@ class AESController:
 				
 				data = self.physmem.read(self.src, ((value & 0xFFF) + 1) * 16)
 				if value & 0x10000000:
-					if value & 0x1000:
-						raise NotImplementedError("AES block chain continue")
+					if (value & 0x1000) == 0:
+						self.cipher = AES.new(self.key, AES.MODE_CBC, self.iv)
 
-					cipher = AES.new(self.key, AES.MODE_CBC, self.iv)
 					if value & 0x8000000:
-						data = cipher.decrypt(data)
+						data = self.cipher.decrypt(data)
 					else:
-						data = cipher.encrypt(data)
+						data = self.cipher.encrypt(data)
 
 				self.physmem.write(self.dest, data)
 
