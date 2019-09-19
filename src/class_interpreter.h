@@ -8,6 +8,7 @@
 #include "errors.h"
 
 #include <functional>
+#include <algorithm>
 #include <vector>
 #include <cstdint>
 
@@ -66,13 +67,13 @@ public:
 			return false;
 		}
 
-		int result = physmem->read<sizeof(T)>(addr, value);
+		int result = physmem->read<T>(addr, value);
 		if (result == -1) return false;
 		else if (result == -2) {
 			handleMemoryError(addr, false, false);
 			return false;
 		}
-		Endian::swap<sizeof(T)>(value);
+		Endian::swap<T>(value);
 		return true;
 	}
 
@@ -82,13 +83,13 @@ public:
 		checkWatchpoints(true, addr, sizeof(T));
 		#endif
 		
-		Endian::swap<sizeof(T)>(&value);
+		Endian::swap<T>(&value);
 		if (!translateAddr(&addr, sizeof(T), IVirtualMemory::DataWrite)) {
 			handleMemoryError(addr, true, false);
 			return false;
 		}
 		
-		int result = physmem->write<sizeof(T)>(addr, &value);
+		int result = physmem->write<T>(addr, value);
 		if (result == -1) return false;
 		else if (result == -2) {
 			handleMemoryError(addr, true, false);

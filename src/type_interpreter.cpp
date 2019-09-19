@@ -4,6 +4,7 @@
 #include "errors.h"
 #include "common.h"
 #include <vector>
+#include <algorithm>
 
 int Interpreter_clear(InterpreterObj *self) {
 	Py_CLEAR(self->physmem);

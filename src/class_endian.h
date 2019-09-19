@@ -14,9 +14,21 @@ public:
 	static uint32_t swap32(uint32_t);
 	static uint64_t swap64(uint64_t);
 	
-	template<int len> static void swap(void *value);
-	template<> static void swap<1>(void *value) { swap((uint8_t *)value); }
-	template<> static void swap<2>(void *value) { swap((uint16_t *)value); }
-	template<> static void swap<4>(void *value) { swap((uint32_t *)value); }
-	template<> static void swap<8>(void *value) { swap((uint64_t *)value); }
+	template <class T>
+	static void swap(T *value) {
+		switch(sizeof(T)) {
+			case 1:
+				swap((uint8_t *)value);
+				break;
+			case 2:
+				swap((uint16_t *)value);
+				break;
+			case 4:
+				swap((uint32_t *)value);
+				break;
+			case 8:
+				swap((uint64_t *)value);
+				break;
+		}
+	}
 };

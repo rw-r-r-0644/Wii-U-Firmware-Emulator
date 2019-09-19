@@ -3,6 +3,7 @@
 #include "class_range.h"
 #include "errors.h"
 #include <cstdint>
+#include <cstring>
 
 SpecialRange::SpecialRange(uint32_t start, uint32_t end, ReadCB readCB, WriteCB writeCB)
 	: Range(start, end), readCB(readCB), writeCB(writeCB) {}

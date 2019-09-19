@@ -1,6 +1,7 @@
 
 #include "class_armcore.h"
 #include <string>
+#include <cstring>
 
 ARMCore::ARMCore() : mode(System), thumb(false) {}
 

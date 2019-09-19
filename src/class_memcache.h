@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstdint>
+#include "class_endian.h"
 
 const int LineBits = 3;
 const int LineNum = 1 << LineBits;

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstdint>
+#include "errors.h"
 
 class Buffer {
 	public:
@@ -15,7 +16,7 @@ class Buffer {
 	T *ptr(uint32_t offs) {
 		if (offs + sizeof(T) > size) {
 			OverflowError("Attempted to read outside of buffer");
-			return NULL;
+			return nullptr;
 		}
 		return (T *)((char *)data + offs);
 	}
