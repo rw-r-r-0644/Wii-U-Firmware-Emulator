@@ -48,7 +48,12 @@ class Emulator:
 
 		self.armemu.breakpoints.add(0x5015E70, lambda addr: self.armemu.core.setreg(0, 0))
 		self.armemu.breakpoints.add(0x503409C, lambda addr: self.reset_ppc())
-		
+		self.armemu.breakpoints.add(0x01000300, lambda addr: self.iosu_loading())
+
+	def iosu_loading(self):
+		print("Reached iosu elf loader");
+		if "noiosu" in sys.argv: sys.exit()
+
 	def init_physmem(self):
 		self.physmem = pyemu.PhysicalMemory()
 		self.physmem.add_range(0x00000000, 0x02000000) #MEM1
