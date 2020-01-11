@@ -87,7 +87,7 @@ class Emulator:
 		size = struct.unpack(">I", self.physmem.read(0x080000AC, 4))[0]
 		data = self.physmem.read(0x08000100, size)
 
-		with open("espresso_key.txt") as f:
+		with open("input/espresso_key.txt") as f:
 			key = bytes.fromhex(f.read())
 		cipher = AES.new(key, AES.MODE_CBC, bytes(16))
 		self.physmem.write(0x08000100, cipher.decrypt(data))
@@ -97,7 +97,7 @@ class Emulator:
 			self.scheduler.resume(emu)
 
 	def load_boot1(self):
-		with open("boot1.bin", "rb") as f:
+		with open("input/boot1.bin", "rb") as f:
 			data = f.read()
 		self.physmem.write(0x0D400200, data)
 		self.armemu.core.setreg(pyemu.ARMCore.PC, 0x0D400200)

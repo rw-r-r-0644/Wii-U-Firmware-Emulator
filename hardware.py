@@ -748,7 +748,7 @@ class SDIOController:
 	def __init__(self, scheduler, armirq, physmem, index, type):
 		self.file = None
 		if index == 1:
-			self.file = open("mlc_work.bin", "r+b")
+			self.file = open("input/mlc_work.bin", "r+b")
 	
 		self.scheduler = scheduler
 		self.armirq = armirq
@@ -1129,11 +1129,11 @@ class NANDController:
 	def __init__(self, scheduler, armirq, physmem):
 		self.scheduler = scheduler
 
-		self.slc = open("slc_work.bin", "r+b")
-		self.slcspare = open("slcspare_work.bin", "r+b")
+		self.slc = open("input/slc_work.bin", "r+b")
+		self.slcspare = open("input/slcspare_work.bin", "r+b")
 
-		self.slccmpt = open("slccmpt_work.bin", "r+b")
-		self.slccmptspare = open("slccmptspare_work.bin", "r+b")
+		self.slccmpt = open("input/slccmpt_work.bin", "r+b")
+		self.slccmptspare = open("input/slccmptspare_work.bin", "r+b")
 		
 		self.armirq = armirq
 		self.physmem = physmem
@@ -1430,7 +1430,7 @@ HARDWARE_VERSION_CCR = 0xCAFE0060
 
 class OTPController:
 	def __init__(self, scheduler):
-		with open("otp.bin", "rb") as f:
+		with open("input/otp.bin", "rb") as f:
 			self.data = struct.unpack(">256I", f.read())
 			
 		self.scheduler = scheduler
@@ -1447,7 +1447,7 @@ class SEEPROMController:
 	POST_POST_WRITE = 3
 
 	def __init__(self, scheduler):
-		with open("seeprom.bin", "rb") as f:
+		with open("input/seeprom.bin", "rb") as f:
 			self.data = list(struct.unpack(">256H", f.read()))
 			
 		self.state = self.LISTEN
