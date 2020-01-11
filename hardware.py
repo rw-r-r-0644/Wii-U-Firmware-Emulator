@@ -748,7 +748,7 @@ class SDIOController:
 	def __init__(self, scheduler, armirq, physmem, index, type):
 		self.file = None
 		if index == 1:
-			self.file = open("input/mlc_work.bin", "r+b")
+			self.file = open("input/mlc.bin", "r+b")
 	
 		self.scheduler = scheduler
 		self.armirq = armirq
@@ -972,17 +972,14 @@ class NANDBank:
 	#0x01DC: Spansion Undetermined
 	chip_id = 0xECDC
 
-	def __init__(self, scheduler, armirq, physmem, slc, slcspare, slccmpt, slccmptspare):
+	def __init__(self, scheduler, armirq, physmem, slc, slccmpt):
 		self.scheduler = scheduler
 		self.armirq = armirq
 		self.physmem = physmem
 		self.slc = slc
-		self.slcspare = slcspare
 		self.slccmpt = slccmpt
-		self.slccmptspare = slccmptspare
 
 		self.file = self.slccmpt
-		self.filespare = self.slccmptspare
 		self.chip_reset()
 
 	def chip_reset(self):
@@ -1005,10 +1002,8 @@ class NANDBank:
 	def set_bank(self, cmpt):
 		if cmpt:
 			self.file = self.slccmpt
-			self.filespare = self.slccmptspare
 		else:
 			self.file = self.slc
-			self.filespare = self.slcspare
 		
 	def read(self, addr):
 		if addr == NAND_CTRL: return self.control
@@ -1069,16 +1064,17 @@ class NANDBank:
 		elif command == 0x30: #Read
 			assert read and not write and (length == 0x840 or length == 0x40)
 			if length == 0x840:
-				self.file.seek((self.ipagenum << 11) | self.ipageoff)
-				self.physmem.write(self.databuf, self.file.read(0x800))
+				self.file.seek((self.ipagenum * 0x840) + self.ipageoff)
+				self.physmem.write(self.databuf, self.file.read(0x800 - self.ipageoff))
 
-				self.filespare.seek(self.ipagenum << 6)
-				sparedata = self.filespare.read(0x40)
+				sparedata = self.file.read(0x40)
 				self.physmem.write(self.eccbuf, sparedata)
 				self.physmem.write(self.eccbuf ^ 0x40, sparedata[0x30:])
+
+				self.physmem.write(self.databuf + (0x800 - self.ipageoff), self.file.read(self.ipageoff))
 			else:
-				self.filespare.seek(self.ipagenum << 6)
-				self.physmem.write(self.databuf, self.filespare.read(0x40))
+				self.file.seek((self.ipagenum * 0x840) + 0x800)
+				self.physmem.write(self.databuf, self.file.read(0x40))
 				
 		elif command == 0x60: #Erase init 1
 			assert not read and not write and not length
@@ -1090,19 +1086,21 @@ class NANDBank:
 		elif command == 0x80: #Write
 			assert not read and write and length == 0x800
 			data = self.physmem.read(self.databuf, length)
-			self.file.seek((self.ipagenum << 11) | self.ipageoff)
-			self.file.write(data)
-			
+			self.file.seek((self.ipagenum * 0x840) + self.ipageoff)
+			self.file.write(data[:(0x800 - self.ipageoff)])
+			self.file.seek((self.ipagenum + 1) * 0x840)
+			self.file.write(data[(0x800 - self.ipageoff):])
+
 		elif command == 0x85: #Write spare
 			assert not read and write and length == 0x40
 			data = self.physmem.read(self.databuf, length)
-			self.filespare.seek(self.ipagenum << 6)
-			self.filespare.write(data)
+			self.file.seek((self.ipagenum * 0x840) + 0x800)
+			self.file.write(data)
 
 		elif command == 0x90: #Get chip id
 			assert read and not write and length == 0x20
 			self.physmem.write(self.databuf, struct.pack(">H", self.chip_id))
-		
+
 		elif command == 0xD0: #Erase init 2
 			assert not read and not write and not length
 			
@@ -1129,11 +1127,8 @@ class NANDController:
 	def __init__(self, scheduler, armirq, physmem):
 		self.scheduler = scheduler
 
-		self.slc = open("input/slc_work.bin", "r+b")
-		self.slcspare = open("input/slcspare_work.bin", "r+b")
-
-		self.slccmpt = open("input/slccmpt_work.bin", "r+b")
-		self.slccmptspare = open("input/slccmptspare_work.bin", "r+b")
+		self.slc = open("input/slc.bin", "r+b")
+		self.slccmpt = open("input/slccmpt.bin", "r+b")
 		
 		self.armirq = armirq
 		self.physmem = physmem
@@ -1144,13 +1139,11 @@ class NANDController:
 		self.reset()
 
 	def create_bank(self):
-		return NANDBank(self.scheduler, self.armirq, self.physmem, self.slc, self.slcspare, self.slccmpt, self.slccmptspare)
+		return NANDBank(self.scheduler, self.armirq, self.physmem, self.slc, self.slccmpt)
 		
 	def close(self):
 		self.slc.close()
-		self.slcspare.close()
 		self.slccmpt.close()
-		self.slccmptspare.close()
 	
 	def reset(self):
 		self.main_bank.chip_reset()

@@ -8,8 +8,8 @@ This emulator consists of both Python and C++ code. The C++ code (which is compi
 ### Requirements:
 * A dump of boot1 (boot1.bin, obtainable through "hexFW")
 * A dump of otp (otp.bin) and seeprom (seeprom.bin)
-* A dump of mlc (mlc_work.bin, unneeded for boot1-only debugging)
-* A full dump of slc and slccmpt with spare data (obtainable through "WiiU Nand Dumper")
+* A dump of mlc (mlc.bin, unneeded for boot1-only debugging)
+* A full dump of slc and slccmpt with spare data (slc.bin and slccmpt.bin, obtainable through "WiiU Nand Dumper")
 * Python 3 (tested with 3.6.4)
 * PyCrypto / PyCryptodome (for AES hardware)
 
@@ -18,14 +18,9 @@ This emulator consists of both Python and C++ code. The C++ code (which is compi
     ```
     python setup.py install
     ```
-* Prepare the slc by splitting the raw and ecc data. You can use utils/split_nand.py to do this:
-    ```
-    python utils/split_nand.py slc.bin slc_work.bin slcspare_work.bin
-    python utils/split_nand.py slccmpt.bin slccmpt_work.bin slccmptspare_work.bin
-    ```
 * Create a file named espresso_key.txt in emulator's input/ folder and put the espresso ancast key into it as ascii hex digits
-* Place otp.bin, seeprom.bin, slc_work.bin, slccmpt_work.bin, slcspare_work.bin, slccmptspare_work.bin in emulator's input/ folder
-* Place mlc_work.bin in emulator's input/ folder. If only need to emulate boot1, you can provide a dummy empty file
+* Place otp.bin, seeprom.bin, slc.bin, slccmpt.bin in emulator's input/ folder
+* Place mlc.bin in emulator's input/ folder. If only boot1 emulation is needed, an empty mlc.bin file is sufficient
 * Done!
 
 Pass "noprint" as a command line argument to disable print messages on unimplemented hardware reads/writes. Pass "logall" to enable hack that sets the COS log level to the highest possible value. Pass "logsys" to enable IOSU syscall logging. This generates ipc.txt (ipc requests like ioctls), messages.txt (message queue operations) and files.txt (files openend by IOSU). It slows down the code a lot however.
