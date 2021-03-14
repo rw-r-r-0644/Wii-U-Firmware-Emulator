@@ -218,6 +218,8 @@ private:
 	void read(ArgParser *parser);
 	void translate(ArgParser *parser);
 	void memmap(ArgParser *parser);
+	void dmpsave(ArgParser *parser);
+	void dmpload(ArgParser *parser);
 	
 	void modules(ArgParser *parser);
 	void module(ArgParser *parser);

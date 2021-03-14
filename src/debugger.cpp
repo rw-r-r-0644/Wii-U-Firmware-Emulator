@@ -7,6 +7,8 @@
 #include "common/sys.h"
 #include "common/buffer.h"
 #include "common/exceptions.h"
+#include "common/filestreamin.h"
+#include "common/filestreamout.h"
 
 #include <algorithm>
 
@@ -57,6 +59,8 @@ const char *HELP_TEXT =
 	"    read virt/phys <address> <length>\n"
 	"    translate <address>\n"
 	"    memmap\n"
+	"    dmpsave <file> virt/phys <address> <length>\n"
+	"    dmpload <file> virt/phys <address> (<length>)\n"
 	"\n"
 	"System state:\n"
 	"    modules\n"
@@ -1484,6 +1488,8 @@ void Debugger::processCommand(std::string command, ArgParser *args) {
 	else if (command == "read") read(args);
 	else if (command == "translate") translate(args);
 	else if (command == "memmap") memmap(args);
+	else if (command == "dmpsave") dmpsave(args);
+	else if (command == "dmpload") dmpload(args);
 	
 	else if (command == "modules") modules(args);
 	else if (command == "module") module(args);
@@ -1941,6 +1947,71 @@ void Debugger::translate(ArgParser *args) {
 void Debugger::memmap(ArgParser *args) {
 	if (!args->finish()) return;
 	getCurrent()->printMemoryMap();
+}
+
+
+void Debugger::dmpsave(ArgParser *args) {
+	std::string fname, mode;
+	uint32_t address, length;
+	if (!args->string(&fname)) return;
+	if (!args->string(&mode)) return;
+	if (!args->integer(&address)) return;
+	if (!args->integer(&length)) return;
+	if (!args->finish()) return;
+
+	if (mode == "virt") {
+		if (!getCurrent()->translate(&address)) {
+			Sys::out->write("Address translation failed.\n");
+			return;
+		}
+	}
+	else if (mode != "phys") {
+		Sys::out->write("Please specify either 'phys' or 'virt'.\n");
+		return;
+	}
+
+	FileStreamOut stream(fname);
+	Buffer buffer = physmem->read(address, length);
+
+	stream.seek(0);
+	stream.write(buffer.get(), buffer.size());
+
+	Sys::out->write("%08X-%08X -> %s\n", address, address+length, fname.c_str());
+}
+
+void Debugger::dmpload(ArgParser *args) {
+	std::string fname, mode;
+	uint32_t address, length;
+	if (!args->string(&fname)) return;
+	if (!args->string(&mode)) return;
+	if (!args->integer(&address)) return;
+
+	FileStreamIn stream(fname);
+	if (!args->integer(&length)) {
+		length = stream.size();
+	}
+
+	if (!args->finish()) return;
+
+	if (mode == "virt") {
+		if (!getCurrent()->translate(&address)) {
+			Sys::out->write("Address translation failed.\n");
+			return;
+		}
+	}
+	else if (mode != "phys") {
+		Sys::out->write("Please specify either 'phys' or 'virt'.\n");
+		return;
+	}
+
+	Buffer buffer(length);
+
+	stream.seek(0);
+	stream.read(buffer.get(), buffer.size());
+
+	physmem->write(address, buffer);
+
+	Sys::out->write("%08X-%08X <- %s\n", address, address+length, fname.c_str());
 }
 
 void Debugger::modules(ArgParser *args) {
