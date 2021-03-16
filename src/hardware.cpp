@@ -397,7 +397,7 @@ void RTCController::reset() {
 	counter = 0;
 	offtimer = 0;
 	control0 = 0;
-	control1 = 0;
+	control1 = (1 << 8);
 	
 	sramidx = 0;
 }
