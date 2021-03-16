@@ -274,12 +274,14 @@ void LatteController::write(uint32_t addr, uint32_t value) {
 		uint32_t changed = resets_compat ^ value;
 		uint32_t cleared = changed & (resets_compat & ~value);
 		uint32_t set = changed & (~resets_compat & value);
+#if 0
 		if (set & 0x10) {
 			start_ppc();
 		}
 		if (cleared & 0x10) {
 			reset_ppc();
 		}
+#endif
 		resets_compat = value;
 	}
 	else if (addr == LT_IFPOWER) ifpower = value;
