@@ -2,8 +2,13 @@
 #pragma once
 
 #include <map>
-
 #include <cstdint>
+
+#include "common/buffer.h"
+
+
+class Hardware;
+class PhysicalMemory;
 
 
 class MEMSeqController {
@@ -62,6 +67,7 @@ public:
 		MEM_EDRAM_REFRESH_VAL = 0xD0B42CE,
 		MEM_D8B42D0 = 0xD0B42D0,
 		MEM_D8B42D2 = 0xD0B42D2,
+		MEM_MEM1_COMPAT_MODE = 0xD0B42D4,
 		MEM_D8B42D6 = 0xD0B42D6,
 		MEM_SEQ0_DATA = 0xD0B4300,
 		MEM_SEQ0_ADDR = 0xD0B4302,
@@ -84,12 +90,16 @@ public:
 		MEM_CONFIG_END = 0xD0B4648,
 	};
 	
+	MEMController(Hardware *hardware, PhysicalMemory *physmem);
+	
 	void reset();
 	
 	uint16_t read(uint32_t addr);
 	void write(uint32_t addr, uint16_t value);
 	
 private:
+	uint32_t getMem1CompatAddr(uint32_t mode, uint32_t addr);
+
 	uint16_t compat;
 	uint16_t seq_addr;
 	uint16_t seq0_addr;
@@ -99,9 +109,13 @@ private:
 	uint16_t mem2_config;
 	uint16_t d8b44e8;
 	uint16_t d8b44ea;
+	uint16_t mem1_compat_mode;
 	
 	MEMSeqController seq;
 	MEMSeqController seq0;
 	
 	MEMConfigController config[4];
+	
+	Hardware *hardware;
+	PhysicalMemory *physmem;
 };

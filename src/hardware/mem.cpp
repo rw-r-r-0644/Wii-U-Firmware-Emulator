@@ -1,7 +1,8 @@
 
 #include "hardware/mem.h"
-
 #include "common/logger.h"
+#include "physicalmemory.h"
+#include "hardware.h"
 
 
 void MEMSeqController::reset() {
@@ -19,6 +20,10 @@ void MEMSeqController::write(uint16_t addr, uint16_t value) {
 
 void MEMConfigController::write(uint32_t addr, uint16_t value) {}
 
+
+MEMController::MEMController(Hardware *hardware, PhysicalMemory *physmem) {
+	this->physmem = physmem;
+}
 
 void MEMController::reset() {
 	compat = 0;
@@ -40,6 +45,7 @@ uint16_t MEMController::read(uint32_t addr) {
 		case MEM_COMPAT: return compat;
 		case MEM_FLUSH_MASK: return 0;
 		case MEM_SEQ_DATA: return seq.read(seq_addr);
+		case MEM_MEM1_COMPAT_MODE: return mem1_compat_mode;
 		case MEM_SEQ0_DATA: return seq0.read(seq0_addr);
 		case MEM_SEQ0_CTRL: return seq0_ctrl;
 		case MEM_BLOCK_MEM0_CFG: return mem0_config;
@@ -89,6 +95,21 @@ void MEMController::write(uint32_t addr, uint16_t value) {
 	else if (addr == MEM_EDRAM_REFRESH_VAL) {}
 	else if (addr == MEM_D8B42D0) {}
 	else if (addr == MEM_D8B42D2) {}
+	else if (addr == MEM_MEM1_COMPAT_MODE) {
+		Buffer mem1(0x2000000);
+		
+		for (uint32_t addr = 0; addr < 0x2000000; addr += 0x100) {
+			uint32_t mem1addr = getMem1CompatAddr(mem1_compat_mode, addr);
+			physmem->read(addr, mem1.get() + mem1addr, 0x100);
+		}
+		
+		for (uint32_t addr = 0; addr < 0x2000000; addr += 0x100) {
+			uint32_t mem1addr = getMem1CompatAddr(value, addr);
+			physmem->write(addr, mem1.get() + mem1addr, 0x100);
+		}
+		
+		mem1_compat_mode = value & 3;
+	}
 	else if (addr == MEM_D8B42D6) {}
 	else if (addr == MEM_SEQ0_DATA) seq0.write(seq0_addr, value);
 	else if (addr == MEM_SEQ0_ADDR) seq0_addr = value;
@@ -110,4 +131,18 @@ void MEMController::write(uint32_t addr, uint16_t value) {
 	else {
 		Logger::warning("Unknown mem write: 0x%X (0x%08X)", addr, value);
 	}
+}
+
+uint32_t MEMController::getMem1CompatAddr(uint32_t mode, uint32_t addr) {
+	uint32_t iblk = addr >> 8;
+
+	uint32_t rotsize = ((uint32_t []){0, 4, 11, 17})[mode & 3];
+	uint32_t rotmask = (1 << rotsize) - 1;
+
+	uint32_t oblk = iblk & ~rotmask;
+	iblk <<= 3;
+	oblk |= iblk & rotmask;
+	oblk |= (iblk >> rotsize) & 7;
+
+	return (oblk << 8) | (addr & 0xff);
 }

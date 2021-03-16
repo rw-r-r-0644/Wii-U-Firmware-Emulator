@@ -1079,7 +1079,8 @@ Hardware::Hardware(
 	ohci2(this, physmem, 3),
 	pi(this, physmem),
 	gpu(this, physmem),
-	dsp(this)
+	dsp(this),
+	mem(this, physmem)
 	{}
 
 void Hardware::reset() {
