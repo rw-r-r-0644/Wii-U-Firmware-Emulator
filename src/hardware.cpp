@@ -312,7 +312,20 @@ void LatteController::write(uint32_t addr, uint32_t value) {
 	else if (addr == LT_D800504) d800504 = value;
 	else if (addr == LT_OTPPROT) otpprot = value;
 	else if (addr == LT_DEBUG) debug = value;
-	else if (addr == LT_COMPAT_MEMCTRL_STATE) compat_memctrl_state = value;
+	else if (addr == LT_COMPAT_MEMCTRL_STATE) {
+		if ((compat_memctrl_state ^ value) & 0x400) {
+			Buffer mem1(0x2000000);
+			
+			physmem->read(0x00400000, mem1.get() + 0x00000000, 0x00C00000);
+			physmem->read(0x01400000, mem1.get() + 0x00C00000, 0x00C00000);
+			for (uint32_t out = 0x01800000; out < 0x02000000; out += 0x10) {
+				physmem->read(0x01FFFFF0, mem1.get() + out, 0x10);
+			}
+			
+			physmem->write(0x00000000, mem1);
+		}
+		compat_memctrl_state = value;
+	}
 	else if (addr == LT_IOP2X) {
 		iop2x = value | 4;
 		irq_arm.trigger_irq_lt(12);
