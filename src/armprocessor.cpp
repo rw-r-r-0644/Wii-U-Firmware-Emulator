@@ -36,6 +36,10 @@ void ARMProcessor::reset() {
 }
 
 void ARMProcessor::step() {
+	if (printpc) {
+		Sys::out->write("PC: 0x%0X\n", core.regs[ARMCore::PC]);
+	}
+	
 	if (core.isThumb()) {
 		stepThumb();
 	}

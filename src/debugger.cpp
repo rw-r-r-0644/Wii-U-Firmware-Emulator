@@ -1504,9 +1504,16 @@ void Debugger::processCommand(std::string command, ArgParser *args) {
 	else if (command == "fileclients") fileclients(args);
 	else if (command == "slccache") slccache(args);
 	
+	else if (command == "printpc") printpc(args);
+	
 	else {
 		Sys::out->write("Unknown command.\n");
 	}
+}
+
+void Debugger::printpc(ArgParser *args) {
+	if (!args->finish()) return;
+	armcpu->printpc = true;
 }
 
 void Debugger::help(ArgParser *args) {

@@ -234,6 +234,8 @@ private:
 	void fileclients(ArgParser *parser);
 	void slccache(ArgParser *parser);
 	
+	void printpc(ArgParser *parser);
+	
 	Emulator *emulator;
 	PhysicalMemory *physmem;
 	

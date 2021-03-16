@@ -89,6 +89,8 @@ public:
 	uint64_t dataWrites;
 	#endif
 	
+	bool printpc = false;
+	
 private:
 	void stepThumb();
 	void stepARM();
