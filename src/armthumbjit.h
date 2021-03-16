@@ -85,4 +85,5 @@ private:
 	
 	char *table[0x100000];
 	uint32_t sizes[0x100000];
+	uint16_t *icache[0x100000];
 };

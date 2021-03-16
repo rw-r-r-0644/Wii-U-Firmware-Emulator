@@ -690,6 +690,8 @@ void ARMThumbJIT::invalidate() {
 			munmap(table[i], sizes[i]);
 			table[i] = nullptr;
 			sizes[i] = 0;
+			delete icache[i];
+			icache[i] = nullptr;
 		}
 	}
 	
@@ -700,9 +702,8 @@ void ARMThumbJIT::invalidate() {
 
 void ARMThumbJIT::execute(uint32_t pc) {
 	char *target = table[pc >> 12];
-	if (!target) {
+	if (!target || icache[pc >> 12][(pc >> 1) & 0x7FF] != physmem->read<uint16_t>(pc)) {
 		target = generateCode(pc & ~0xFFF);
-		table[pc >> 12] = target;
 	}
 	
 	target = target + 5 * ((pc & 0xFFF) >> 1);
@@ -717,9 +718,19 @@ void ARMThumbJIT::execute(uint32_t pc) {
 
 char *ARMThumbJIT::generateCode(uint32_t pc) {
 	ThumbCodeGenerator generator;
+	
+	uint32_t page = pc >> 12;
+	
+	if (table[page]) {
+		munmap(table[page], sizes[page]);
+	} else {
+		icache[page] = new uint16_t[0x800];
+	}
+	
 	for (int i = 0; i < 0x800; i++) {
 		ARMThumbInstr instr;
 		instr.value = physmem->read<uint16_t>(pc + i * 2);
+		icache[page][i] = instr.value;
 		generator.generate(instr);
 	}
 	
@@ -731,12 +742,15 @@ char *ARMThumbJIT::generateCode(uint32_t pc) {
 	char *buffer = generator.get();
 	size_t size = generator.size();
 	
-	sizes[pc >> 12] = size;
+	sizes[page] = size;
 	
 	char *jit = (char *)mmap(
 		NULL, size, PROT_READ | PROT_WRITE | PROT_EXEC,
 		MAP_ANONYMOUS | MAP_SHARED, -1, 0
 	);
 	memcpy(jit, buffer, size);
+
+	table[page] = jit;
+
 	return jit;
 }

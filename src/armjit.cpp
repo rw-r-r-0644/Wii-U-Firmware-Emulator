@@ -940,6 +940,8 @@ void ARMJIT::invalidate() {
 			munmap(table[i], sizes[i]);
 			table[i] = nullptr;
 			sizes[i] = 0;
+			delete icache[i];
+			icache[i] = nullptr;
 		}
 	}
 	
@@ -950,9 +952,8 @@ void ARMJIT::invalidate() {
 
 void ARMJIT::execute(uint32_t pc) {
 	char *target = table[pc >> 12];
-	if (!target) {
+	if (!target || icache[pc >> 12][(pc >> 2) & 0x3FF] != physmem->read<uint32_t>(pc)) {
 		target = generateCode(pc & ~0xFFF);
-		table[pc >> 12] = target;
 	}
 	
 	target = target + 5 * ((pc & 0xFFF) >> 2);
@@ -967,9 +968,19 @@ void ARMJIT::execute(uint32_t pc) {
 
 char *ARMJIT::generateCode(uint32_t pc) {
 	ARMCodeGenerator generator;
+	
+	uint32_t page = pc >> 12;
+	
+	if (table[page]) {
+		munmap(table[page], sizes[page]);
+	} else {
+		icache[page] = new uint32_t[0x400];
+	}
+	
 	for (int i = 0; i < 0x400; i++) {
 		ARMInstruction instr;
 		instr.value = physmem->read<uint32_t>(pc + i * 4);
+		icache[page][i] = instr.value;
 		generator.generate(instr);
 	}
 	
@@ -981,12 +992,15 @@ char *ARMJIT::generateCode(uint32_t pc) {
 	char *buffer = generator.get();
 	size_t size = generator.size();
 	
-	sizes[pc >> 12] = size;
+	sizes[page] = size;
 	
 	char *jit = (char *)mmap(
 		NULL, size, PROT_READ | PROT_WRITE | PROT_EXEC,
 		MAP_ANONYMOUS | MAP_SHARED, -1, 0
 	);
 	memcpy(jit, buffer, size);
+	
+	table[page] = jit;
+	
 	return jit;
 }
