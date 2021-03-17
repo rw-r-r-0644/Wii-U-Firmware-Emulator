@@ -1712,7 +1712,7 @@ void Debugger::breakp(ArgParser *args) {
 	if (command == "list") {
 		if (!args->finish()) return;
 		
-		std::vector<uint32_t> breakpoints = cpu->breakpoints;
+		std::vector<uint32_t> breakpoints = *cpu->breakpoints;
 		std::sort(breakpoints.begin(), breakpoints.end());
 		
 		if (breakpoints.size() == 0) {
@@ -1733,10 +1733,10 @@ void Debugger::breakp(ArgParser *args) {
 	else if (command == "clear") {
 		if (!args->finish()) return;
 		
-		if (core == 0) armcpu->breakpoints.clear();
+		if (core == 0) armcpu->breakpoints->clear();
 		else {
 			for (int i = 0; i < 3; i++) {
-				ppccpu[i]->breakpoints.clear();
+				ppccpu[i]->breakpoints->clear();
 			}
 		}
 	}
@@ -1792,7 +1792,7 @@ void Debugger::watch(ArgParser *args) {
 		
 		size_t total = 0;
 		for (int i = 0; i < 4; i++) {
-			total += cpu->watchpoints[i / 2][i % 2].size();
+			total += cpu->watchpoints[i / 2][i % 2]->size();
 		}
 		
 		if (total == 0) {
@@ -1808,7 +1808,7 @@ void Debugger::watch(ArgParser *args) {
 			
 			for (int virt = 0; virt < 2; virt++) {
 				for (int write = 0; write < 2; write++) {
-					for (uint32_t wp : cpu->watchpoints[write][virt]) {
+					for (uint32_t wp : *cpu->watchpoints[write][virt]) {
 						Sys::out->write(
 							"    0x%08X (%s, %s)\n", wp,
 							virt ? "virtual" : "physical",
@@ -1823,7 +1823,7 @@ void Debugger::watch(ArgParser *args) {
 		if (!args->finish()) return;
 		
 		for (int i = 0; i < 4; i++) {
-			cpu->watchpoints[i / 2][i % 2].clear();
+			cpu->watchpoints[i / 2][i % 2]->clear();
 		}
 	}
 	else if (command == "add" || command == "del") {

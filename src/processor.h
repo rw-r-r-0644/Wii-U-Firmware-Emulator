@@ -15,6 +15,8 @@ class Emulator;
 class Processor {
 public:
 	Processor(Emulator *emulator, int index);
+	Processor(const Processor &p1);
+	~Processor();
 	
 	void start();
 	void pause();
@@ -30,7 +32,7 @@ public:
 	void addBreakpoint(uint32_t addr);
 	void removeBreakpoint(uint32_t addr);
 	
-	std::vector<uint32_t> breakpoints;
+	std::vector<uint32_t> *breakpoints;
 	#endif
 	
 	#if WATCHPOINTS
@@ -38,7 +40,8 @@ public:
 	void addWatchpoint(bool write, bool virt, uint32_t addr);
 	void removeWatchpoint(bool write, bool virt, uint32_t addr);
 	
-	std::vector<uint32_t> watchpoints[2][2];
+	std::vector<uint32_t> *watchpoints[2][2];
+	
 	#endif
 
 protected:
