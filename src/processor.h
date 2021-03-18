@@ -37,10 +37,10 @@ public:
 	
 	#if WATCHPOINTS
 	bool isWatchpoint(bool write, bool virt, uint32_t addr, int size);
-	void addWatchpoint(bool write, bool virt, uint32_t addr);
+	void addWatchpoint(bool write, bool virt, uint32_t addr, int length);
 	void removeWatchpoint(bool write, bool virt, uint32_t addr);
 	
-	std::vector<uint32_t> *watchpoints[2][2];
+	std::vector<std::pair<uint32_t, int>> *watchpoints[2][2];
 	
 	#endif
 

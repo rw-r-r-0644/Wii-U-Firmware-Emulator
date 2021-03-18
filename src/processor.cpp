@@ -15,10 +15,10 @@ Processor::Processor(Emulator *emulator, int index) {
 	this->breakpoints = new std::vector<uint32_t>();
 	#endif
 	#if WATCHPOINTS
-	this->watchpoints[0][0] = new std::vector<uint32_t>();
-	this->watchpoints[0][1] = new std::vector<uint32_t>();
-	this->watchpoints[1][0] = new std::vector<uint32_t>();
-	this->watchpoints[1][1] = new std::vector<uint32_t>();
+	this->watchpoints[0][0] = new std::vector<std::pair<uint32_t, int>>();
+	this->watchpoints[0][1] = new std::vector<std::pair<uint32_t, int>>();
+	this->watchpoints[1][0] = new std::vector<std::pair<uint32_t, int>>();
+	this->watchpoints[1][1] = new std::vector<std::pair<uint32_t, int>>();
 	#endif
 	enabled = false;
 	paused = true;
@@ -29,10 +29,10 @@ Processor::Processor(const Processor &p1) {
 	this->breakpoints = new std::vector<uint32_t>(*p1.breakpoints);
 	#endif
 	#if WATCHPOINTS
-	this->watchpoints[0][0] = new std::vector<uint32_t>(*p1.watchpoints[0][0]);
-	this->watchpoints[0][1] = new std::vector<uint32_t>(*p1.watchpoints[0][1]);
-	this->watchpoints[1][0] = new std::vector<uint32_t>(*p1.watchpoints[1][0]);
-	this->watchpoints[1][1] = new std::vector<uint32_t>(*p1.watchpoints[1][1]);
+	this->watchpoints[0][0] = new std::vector<std::pair<uint32_t, int>>(*p1.watchpoints[0][0]);
+	this->watchpoints[0][1] = new std::vector<std::pair<uint32_t, int>>(*p1.watchpoints[0][1]);
+	this->watchpoints[1][0] = new std::vector<std::pair<uint32_t, int>>(*p1.watchpoints[1][0]);
+	this->watchpoints[1][1] = new std::vector<std::pair<uint32_t, int>>(*p1.watchpoints[1][1]);
 	#endif
 }
 
@@ -131,21 +131,22 @@ void Processor::checkWatchpoints(bool write, bool virt, uint32_t addr, int lengt
 }
 
 bool Processor::isWatchpoint(bool write, bool virt, uint32_t addr, int length) {
-	for (uint32_t wp : *watchpoints[write][virt]) {
-		if (addr <= wp && wp < addr + length) {
+	for (const auto& wp : *watchpoints[write][virt]) {
+		if ((addr <= (wp.first + wp.second - 1)) &&
+			((addr + length - 1) >= (wp.first)))
 			return true;
-		}
 	}
 	return false;
 }
 
-void Processor::addWatchpoint(bool write, bool virt, uint32_t addr) {
-	watchpoints[write][virt]->push_back(addr);
+void Processor::addWatchpoint(bool write, bool virt, uint32_t addr, int length) {
+	watchpoints[write][virt]->emplace_back(addr, length);
 }
 
 void Processor::removeWatchpoint(bool write, bool virt, uint32_t addr) {
 	watchpoints[write][virt]->erase(
-		std::remove(watchpoints[write][virt]->begin(), watchpoints[write][virt]->end(), addr),
+		std::remove_if(watchpoints[write][virt]->begin(), watchpoints[write][virt]->end(),
+					   [addr](const std::pair<uint32_t, int> &v) { return v.first == addr; }),
 		watchpoints[write][virt]->end()
 	);
 }

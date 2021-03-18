@@ -45,7 +45,7 @@ const char *HELP_TEXT =
 	"    \n"
 	#endif
 	#if WATCHPOINTS
-	"    watch add/del virt/phys read/write <address>\n"
+	"    watch add/del virt/phys read/write <address> (<length>)\n"
 	"    watch list\n"
 	"    watch clear\n"
 	#endif
@@ -1808,12 +1808,22 @@ void Debugger::watch(ArgParser *args) {
 			
 			for (int virt = 0; virt < 2; virt++) {
 				for (int write = 0; write < 2; write++) {
-					for (uint32_t wp : *cpu->watchpoints[write][virt]) {
-						Sys::out->write(
-							"    0x%08X (%s, %s)\n", wp,
-							virt ? "virtual" : "physical",
-							write ? "write" : "read"
-						);
+					for (const auto& wp : *cpu->watchpoints[write][virt]) {
+						if (wp.second == 1) {
+							Sys::out->write(
+								"    0x%08X (%s, %s)\n",
+								wp.first,
+								virt ? "virtual" : "physical",
+								write ? "write" : "read"
+							);
+						} else {
+							Sys::out->write(
+								"    0x%08X-0x%08X (%s, %s)\n",
+								wp.first, wp.first + wp.second - 1,
+								virt ? "virtual" : "physical",
+								write ? "write" : "read"
+							);
+						}
 					}
 				}
 			}
@@ -1828,12 +1838,15 @@ void Debugger::watch(ArgParser *args) {
 	}
 	else if (command == "add" || command == "del") {
 		std::string mode, type;
-		uint32_t address;
+		uint32_t address, length = 1;
 		
 		if (!args->string(&mode)) return;
 		if (!args->string(&type)) return;
 		if (!args->integer(&address)) return;
-		if (!args->finish()) return;
+		if (!args->eof()) {
+			if (!args->integer(&length)) return;
+			if (!args->finish()) return;
+		}
 		
 		if (mode != "phys" && mode != "virt") {
 			Sys::out->write("Please specify either 'phys' or 'virt'.\n");
@@ -1857,7 +1870,7 @@ void Debugger::watch(ArgParser *args) {
 			}
 			else {
 				Sys::out->write("Added watchpoint (%s) at %s address 0x%X.\n", type, mode, address);
-				cpu->addWatchpoint(write, virt, address);
+				cpu->addWatchpoint(write, virt, address, length);
 			}
 		}
 		else {
@@ -1994,11 +2007,14 @@ void Debugger::dmpload(ArgParser *args) {
 	if (!args->integer(&address)) return;
 
 	FileStreamIn stream(fname);
-	if (!args->integer(&length)) {
-		length = stream.size();
-	}
 
-	if (!args->finish()) return;
+	if (!args->eof()) {
+		if (!args->integer(&length)) {
+			length = stream.size();
+		}
+
+		if (!args->finish()) return;
+	}
 
 	if (mode == "virt") {
 		if (!getCurrent()->translate(&address)) {
